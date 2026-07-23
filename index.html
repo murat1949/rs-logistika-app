@@ -1283,6 +1283,7 @@ async function submitZayavka() {
     showToast('Заявка добавлена ✓');
     ['z-company','z-contact','z-phone','z-from','z-to','z-cargo','z-summa','z-manager'].forEach(id => document.getElementById(id).value='');
     loadDashboard();
+    loadLeads();
   } else {
     showToast('❌ Ошибка сохранения');
   }
