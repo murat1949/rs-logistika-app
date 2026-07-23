@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Центр управления — Логистика (личный кабинет)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<style>
+  :root{
+    --night:#12293B; --night-2:#1A3A50; --steppe:#F2F5F6; --paper:#FFFFFF;
+    --ink:#16202A; --muted:#5C6B75; --muted-soft:#8894A0;
+    --teal:#2FB6A8; --teal-dark:#218F84; --gold:#D9A441; --red:#E15B4E; --green:#2FAE72; --line:#E7ECEE;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--steppe);color:var(--ink);font-family:'Inter',sans-serif;line-height:1.5;-webkit-font-smoothing:antialiased;}
+  h1,h2,h3{font-family:'Manrope',sans-serif;font-weight:800;letter-spacing:-0.01em;margin:0;}
+  button{font-family:inherit;cursor:pointer;}
+  .app{max-width:960px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column;}
+
+  /* AUTH SCREENS */
+  .auth-wrap{flex:1;display:flex;align-items:center;justify-content:center;padding:24px;}
+  .auth-box{width:100%;max-width:360px;background:var(--paper);border-radius:20px;padding:32px 28px;box-shadow:0 20px 50px -20px rgba(20,40,50,0.25);}
+  .auth-ic{width:52px;height:52px;border-radius:15px;background:var(--teal);display:flex;align-items:center;justify-content:center;font-size:24px;margin:0 auto 16px;color:#fff;}
+  .auth-box h2{font-size:19px;text-align:center;}
+  .auth-box p{color:var(--muted);font-size:13px;text-align:center;margin-top:6px;}
+  .auth-box input{width:100%;margin-top:14px;border:1px solid var(--line);border-radius:12px;padding:12px 14px;font-size:14.5px;font-family:inherit;}
+  .auth-box button.primary{width:100%;margin-top:16px;background:var(--teal);color:#fff;border:none;border-radius:999px;padding:13px;font-weight:800;font-size:14.5px;}
+  .auth-msg{margin-top:12px;font-size:12.5px;text-align:center;}
+  .auth-msg.error{color:var(--red);}
+  .auth-msg.ok{color:var(--teal-dark);}
+
+  /* TOP BAR */
+  .topbar{background:var(--night);color:#fff;padding:14px 18px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:20;}
+  .brand{display:flex;align-items:center;gap:10px;}
+  .brand-ic{width:36px;height:36px;border-radius:10px;background:var(--teal);display:flex;align-items:center;justify-content:center;font-size:18px;}
+  .brand-text .t1{font-family:'Manrope';font-weight:800;font-size:14px;}
+  .brand-text .t2{font-size:10.5px;color:#9FB0BA;}
+  .live-pill{display:inline-flex;align-items:center;gap:6px;background:rgba(47,174,114,0.16);border-radius:999px;padding:6px 11px;font-size:10.5px;font-weight:700;color:var(--green);}
+  .live-dot{width:6px;height:6px;border-radius:50%;background:var(--green);animation:pulse 1.8s infinite;}
+  @keyframes pulse{0%,100%{opacity:1;}50%{opacity:.3;}}
+  .logout-btn{background:rgba(255,255,255,0.1);border:none;color:#fff;font-size:11.5px;font-weight:700;padding:7px 12px;border-radius:999px;}
+
+  .content{flex:1;padding:20px 18px 60px;display:none;}
+  .content.active{display:block;}
+  .greet{font-size:11.5px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.06em;}
+  .greet-h{font-size:20px;margin-top:6px;}
+
+  .kpi-row{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-top:16px;}
+  .kpi{background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:14px;}
+  .kpi .num{font-family:'Manrope';font-weight:800;font-size:21px;color:var(--teal-dark);}
+  .kpi .lbl{font-size:10.5px;color:var(--muted);margin-top:3px;}
+
+  .card{background:var(--paper);border:1px solid var(--line);border-radius:16px;padding:18px;margin-top:14px;}
+  .card-title{font-family:'Manrope';font-weight:700;font-size:14px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;}
+  .row{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--line);font-size:13px;}
+  .row:last-child{border-bottom:none;}
+  .row .val{font-family:'Manrope';font-weight:700;}
+  .empty{color:var(--muted-soft);font-size:12.5px;text-align:center;padding:14px 0;}
+
+  .form-row{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;}
+  .form-row input, .form-row select{flex:1;min-width:120px;border:1px solid var(--line);border-radius:10px;padding:9px 11px;font-size:13.5px;font-family:inherit;}
+  .add-btn{margin-top:10px;background:var(--night);color:#fff;border:none;border-radius:999px;padding:11px 20px;font-weight:700;font-size:13px;}
+</style>
+</head>
+<body>
+
+<div class="app">
+
+  <!-- LOGIN -->
+  <div class="auth-wrap" id="screen-login">
+    <div class="auth-box">
+      <div class="auth-ic">🔐</div>
+      <h2>Вход в панель</h2>
+      <p>Логистическая компания · личный кабинет</p>
+      <input type="email" id="loginEmail" placeholder="Email">
+      <input type="password" id="loginPassword" placeholder="Пароль">
+      <button class="primary" onclick="doLogin()">Войти</button>
+      <div class="auth-msg error" id="loginMsg"></div>
+    </div>
+  </div>
+
+  <!-- SET PASSWORD (after invite/recovery link) -->
+  <div class="auth-wrap" id="screen-setpass" style="display:none;">
+    <div class="auth-box">
+      <div class="auth-ic">🔑</div>
+      <h2>Придумайте пароль</h2>
+      <p>Это ваш первый вход — задайте постоянный пароль для входа в панель</p>
+      <input type="password" id="newPassword" placeholder="Новый пароль (мин. 6 символов)">
+      <input type="password" id="newPassword2" placeholder="Повторите пароль">
+      <button class="primary" onclick="doSetPassword()">Сохранить и войти</button>
+      <div class="auth-msg error" id="setPassMsg"></div>
+    </div>
+  </div>
+
+  <!-- TOP BAR -->
+  <div class="topbar" id="topbar" style="display:none;">
+    <div class="brand">
+      <div class="brand-ic">🚛</div>
+      <div class="brand-text">
+        <div class="t1" id="companyNameLabel">Центр управления</div>
+        <div class="t2">Логистическая компания</div>
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;">
+      <span class="live-pill"><i class="live-dot"></i> LIVE</span>
+      <button class="logout-btn" onclick="doLogout()">Выйти</button>
+    </div>
+  </div>
+
+  <!-- DASHBOARD -->
+  <div class="content" id="screen-dashboard">
+    <div class="greet">Сегодня в компании</div>
+    <div class="greet-h">Обзор</div>
+
+    <div class="kpi-row">
+      <div class="kpi"><div class="num" id="kpiLeads">0</div><div class="lbl">Заявок всего</div></div>
+      <div class="kpi"><div class="num" id="kpiTrips">0</div><div class="lbl">Рейсов выполнено</div></div>
+      <div class="kpi"><div class="num" id="kpiRevenue">0</div><div class="lbl">Выручка по рейсам, ₸</div></div>
+      <div class="kpi"><div class="num" id="kpiDebt">0</div><div class="lbl">Дебиторская задолженность, ₸</div></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">📋 Последние заявки</div>
+      <div id="leadsList"><div class="empty">Загрузка...</div></div>
+      <div class="form-row">
+        <input type="text" id="newLeadCompany" placeholder="Компания клиента">
+        <input type="text" id="newLeadFrom" placeholder="Откуда">
+        <input type="text" id="newLeadTo" placeholder="Куда">
+        <input type="number" id="newLeadAmount" placeholder="Сумма, ₸">
+      </div>
+      <button class="add-btn" onclick="addLead()">+ Добавить заявку</button>
+    </div>
+
+    <div class="card">
+      <div class="card-title">🚛 Последние рейсы</div>
+      <div id="tripsList"><div class="empty">Загрузка...</div></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">💵 Финансы</div>
+      <div id="financeList"><div class="empty">Загрузка...</div></div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  const SUPABASE_URL = "https://ilfxyvsqintvjbifqxvr.supabase.co";
+  const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlsZnh5dnNxaW50dmpiaWZxeHZyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI1NDg4NjYsImV4cCI6MjA5ODEyNDg2Nn0.GxeTD1GlBDmmVsoCgXZPKnp02GDL42ncrWsjegN2B6o";
+  const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  let currentCompanyId = null;
+
+  function showScreen(id){
+    ["screen-login","screen-setpass"].forEach(s => document.getElementById(s).style.display = (s===id? "flex":"none"));
+    document.getElementById("topbar").style.display = (id==="dashboard") ? "flex" : "none";
+    document.getElementById("screen-dashboard").classList.toggle("active", id==="dashboard");
+  }
+
+  // Detect invite/recovery link before Supabase consumes the hash
+  const hash = window.location.hash;
+  const isInviteOrRecovery = hash.includes("type=invite") || hash.includes("type=recovery");
+
+  async function doLogin(){
+    const email = document.getElementById("loginEmail").value.trim();
+    const password = document.getElementById("loginPassword").value;
+    const msg = document.getElementById("loginMsg");
+    msg.textContent = "";
+    const { error } = await sb.auth.signInWithPassword({ email, password });
+    if (error){ msg.textContent = "Неверный email или пароль"; return; }
+    await loadDashboard();
+  }
+
+  async function doSetPassword(){
+    const p1 = document.getElementById("newPassword").value;
+    const p2 = document.getElementById("newPassword2").value;
+    const msg = document.getElementById("setPassMsg");
+    msg.textContent = "";
+    if (p1.length < 6){ msg.textContent = "Пароль должен быть не короче 6 символов"; return; }
+    if (p1 !== p2){ msg.textContent = "Пароли не совпадают"; return; }
+    const { error } = await sb.auth.updateUser({ password: p1 });
+    if (error){ msg.textContent = "Ошибка: " + error.message; return; }
+    history.replaceState(null, "", window.location.pathname);
+    await loadDashboard();
+  }
+
+  async function doLogout(){
+    await sb.auth.signOut();
+    location.reload();
+  }
+
+  async function loadDashboard(){
+    const { data: { user } } = await sb.auth.getUser();
+    if (!user){ showScreen("screen-login"); return; }
+
+    const { data: profile } = await sb.from("profiles").select("*, companies(name)").eq("user_id", user.id).maybeSingle();
+    if (!profile){
+      document.getElementById("loginMsg").textContent = "Профиль не найден — обратитесь в поддержку";
+      showScreen("screen-login");
+      return;
+    }
+    currentCompanyId = profile.company_id;
+    document.getElementById("companyNameLabel").textContent = (profile.companies && profile.companies.name) || "Центр управления";
+
+    showScreen("dashboard");
+    await refreshData();
+  }
+
+  async function refreshData(){
+    const [{ data: leads }, { data: trips }, { data: finance }] = await Promise.all([
+      sb.from("rs_logistika_leads").select("*").order("created_at", { ascending:false }).limit(10),
+      sb.from("rs_logistika_trips").select("*").order("created_at", { ascending:false }).limit(10),
+      sb.from("rs_logistika_finance").select("*").order("created_at", { ascending:false }).limit(10),
+    ]);
+
+    document.getElementById("kpiLeads").textContent = (leads||[]).length;
+    document.getElementById("kpiTrips").textContent = (trips||[]).length;
+    const revenue = (trips||[]).reduce((s,t)=> s + (Number(t.order_amount)||0), 0);
+    const debt = (trips||[]).reduce((s,t)=> s + (Number(t.debt_balance)||0), 0);
+    document.getElementById("kpiRevenue").textContent = revenue.toLocaleString('ru-RU');
+    document.getElementById("kpiDebt").textContent = debt.toLocaleString('ru-RU');
+
+    const leadsList = document.getElementById("leadsList");
+    leadsList.innerHTML = (leads && leads.length)
+      ? leads.map(l => `<div class="row"><span>${l.client_company||'—'} · ${l.route_from||'?'} → ${l.route_to||'?'}</span><span class="val">${l.lead_amount ? Number(l.lead_amount).toLocaleString('ru-RU')+' ₸' : '—'}</span></div>`).join('')
+      : '<div class="empty">Пока нет заявок — добавьте первую ниже</div>';
+
+    const tripsList = document.getElementById("tripsList");
+    tripsList.innerHTML = (trips && trips.length)
+      ? trips.map(t => `<div class="row"><span>${t.client_company||'—'} · ${t.route||''}</span><span class="val">${t.order_amount ? Number(t.order_amount).toLocaleString('ru-RU')+' ₸' : '—'}</span></div>`).join('')
+      : '<div class="empty">Рейсов пока нет</div>';
+
+    const financeList = document.getElementById("financeList");
+    financeList.innerHTML = (finance && finance.length)
+      ? finance.map(f => `<div class="row"><span>${f.finance_date||''}</span><span class="val">${f.revenue ? Number(f.revenue).toLocaleString('ru-RU')+' ₸' : '—'}</span></div>`).join('')
+      : '<div class="empty">Финансовых записей пока нет</div>';
+  }
+
+  async function addLead(){
+    const client_company = document.getElementById("newLeadCompany").value.trim();
+    const route_from = document.getElementById("newLeadFrom").value.trim();
+    const route_to = document.getElementById("newLeadTo").value.trim();
+    const lead_amount = parseFloat(document.getElementById("newLeadAmount").value) || null;
+    if (!client_company){ alert("Укажите компанию клиента"); return; }
+
+    const { error } = await sb.from("rs_logistika_leads").insert({
+      company_id: currentCompanyId,
+      client_company, route_from, route_to, lead_amount,
+      status: "new"
+    });
+    if (error){ alert("Ошибка сохранения: " + error.message); return; }
+
+    document.getElementById("newLeadCompany").value = "";
+    document.getElementById("newLeadFrom").value = "";
+    document.getElementById("newLeadTo").value = "";
+    document.getElementById("newLeadAmount").value = "";
+    await refreshData();
+  }
+
+  (async function init(){
+    if (isInviteOrRecovery){
+      // Let supabase-js parse the hash and establish a session, then ask to set a password
+      sb.auth.onAuthStateChange((event, session) => {
+        if (session) showScreen("screen-setpass");
+      });
+      showScreen("screen-setpass");
+    } else {
+      const { data: { session } } = await sb.auth.getSession();
+      if (session){ await loadDashboard(); }
+      else { showScreen("screen-login"); }
+    }
+  })();
+</script>
+
+</body>
+</html>
