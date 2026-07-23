@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Настройки — Центр управления логистикой</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  :root{
+    --blue:#27388f;--blue2:#4556d6;--blue-grad1:#1e2d73;--blue-grad2:#3044a6;
+    --ink:#0b1536;--ink-mid:#46546d;--ink-soft:#8792a8;
+    --bg:#eef3f8;--white:#ffffff;--border:#dfe6f1;
+    --green:#1b7e3c;--green-bg:#e3f4e8;--red:#c62828;--red-bg:#f9e2e2;
+  }
+  body{
+    font-family:"Segoe UI",Arial,sans-serif;
+    background:var(--bg);
+    color:var(--ink);
+    font-size:17px;
+  }
+
+  /* ---------- Контейнер как у дашборда ---------- */
+  .app{max-width:430px;margin:0 auto;min-height:100vh;background:var(--white);position:relative;padding-bottom:40px}
+  @media(min-width:760px){.app{margin:20px auto;border-radius:20px;overflow:hidden;box-shadow:0 18px 55px rgba(16,36,95,.13);min-height:auto}}
+
+  /* ---------- Шапка ---------- */
+  .header{
+    background:linear-gradient(135deg,var(--blue-grad1) 0%,var(--blue-grad2) 100%);
+    color:#fff;
+    padding:16px 16px 18px;
+  }
+  .header-top{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+  .back-btn{
+    display:inline-flex;align-items:center;gap:6px;
+    background:rgba(255,255,255,.14);
+    color:#fff;border:1px solid rgba(255,255,255,.35);
+    border-radius:10px;padding:8px 14px;
+    font-size:15px;font-weight:600;cursor:pointer;text-decoration:none;
+  }
+  .back-btn svg{width:16px;height:16px;fill:none;stroke:#fff;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
+  .header h1{font-size:21px;font-weight:700;letter-spacing:.3px}
+  .header p{font-size:13.5px;opacity:.85;margin-top:3px}
+
+  /* ---------- Статус связи ---------- */
+  .conn-status{text-align:center;font-size:14px;padding:9px 12px;background:var(--bg)}
+  .conn-ok{color:var(--green)}
+  .conn-error{color:var(--red)}
+
+  /* ---------- Вкладки ---------- */
+  .tabs{display:flex;gap:10px;padding:14px 14px 0}
+  .tab-btn{
+    flex:1;padding:13px 8px;font-size:16.5px;font-weight:700;
+    background:var(--white);color:var(--ink-soft);
+    border:2px solid var(--border);border-radius:12px;cursor:pointer;
+  }
+  .tab-btn.active{background:var(--blue);color:#fff;border-color:var(--blue)}
+
+  /* ---------- Секции ---------- */
+  .section{padding:6px 14px 16px;display:none}
+  .section.active{display:block}
+  .block-title{font-size:17px;font-weight:700;margin:16px 2px 9px;color:var(--blue)}
+
+  /* ---------- Карточки и формы ---------- */
+  .card{background:var(--white);border:2px solid var(--border);border-radius:14px;padding:15px}
+  label{display:block;font-size:14.5px;color:var(--ink-mid);margin:11px 2px 5px}
+  label:first-child{margin-top:0}
+  input[type="text"],input[type="number"]{
+    width:100%;padding:13px 12px;font-size:17.5px;color:var(--ink);
+    background:var(--white);border:2px solid #c6cfe0;border-radius:10px;
+  }
+  input:focus{outline:none;border-color:var(--blue2)}
+
+  .btn{display:inline-block;padding:13px 18px;font-size:16.5px;font-weight:700;border:none;border-radius:10px;cursor:pointer;margin-top:13px}
+  .btn-add{background:var(--blue);color:#fff;width:100%}
+  .btn-save{background:var(--green);color:#fff}
+  .btn-cancel{background:#ececf1;color:#444;margin-left:8px}
+  .btn-edit{background:#eef2ff;color:var(--blue);border:2px solid var(--blue2);padding:9px 15px;font-size:15px}
+  .btn-toggle{background:#ececf1;color:#444;padding:9px 15px;font-size:15px;margin-left:8px}
+
+  /* ---------- Список записей ---------- */
+  .item{background:var(--white);border:2px solid var(--border);border-radius:14px;padding:13px 15px;margin-bottom:10px}
+  .item.inactive{opacity:.55}
+  .item-name{font-size:17.5px;font-weight:700}
+  .item-sub{font-size:14.5px;color:var(--ink-soft);margin-top:3px}
+  .item-badge{display:inline-block;font-size:12.5px;padding:3px 10px;border-radius:20px;margin-top:6px;font-weight:600}
+  .badge-on{background:var(--green-bg);color:var(--green)}
+  .badge-off{background:var(--red-bg);color:var(--red)}
+  .item-actions{margin-top:10px}
+
+  /* ---------- Сообщения ---------- */
+  .msg{padding:0 14px}
+  .msg-inner{padding:12px 14px;border-radius:10px;font-size:15.5px;margin-top:10px;display:none;font-weight:600}
+  .msg-ok{background:var(--green-bg);color:var(--green)}
+  .msg-error{background:var(--red-bg);color:var(--red)}
+
+  .loading{text-align:center;color:var(--ink-soft);padding:20px;font-size:15.5px}
+</style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="auth-lib.js"></script>
+</head>
+<body>
+<div class="app">
+
+  <div class="header">
+    <div class="header-top">
+      <a class="back-btn" href="index.html">
+        <svg viewBox="0 0 24 24"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+        На главную
+      </a>
+    </div>
+    <h1>⚙️ Настройки логистики</h1>
+    <p>Справочники: менеджеры и водители</p>
+  </div>
+
+  <div class="conn-status" id="connStatus">Проверяю связь с базой…</div>
+
+  <div class="msg"><div class="msg-inner" id="msgBox"></div></div>
+
+  <div class="tabs">
+    <button class="tab-btn active" id="tabManagers" onclick="showTab('managers')">🧑‍💼 Менеджеры</button>
+    <button class="tab-btn" id="tabDrivers" onclick="showTab('drivers')">🚚 Водители</button>
+  </div>
+
+  <!-- ================= МЕНЕДЖЕРЫ ================= -->
+  <div class="section active" id="sectionManagers">
+
+    <div class="block-title">Добавить менеджера</div>
+    <div class="card">
+      <label for="mgrName">ФИО менеджера</label>
+      <input type="text" id="mgrName" placeholder="Например: Айдар Ерланович">
+
+      <label for="mgrPhone">Телефон</label>
+      <input type="text" id="mgrPhone" placeholder="Например: +7 701 123 45 67">
+
+      <button class="btn btn-add" onclick="addManager()">➕ Добавить менеджера</button>
+    </div>
+
+    <div class="block-title">Список менеджеров</div>
+    <div id="managersList"><div class="loading">Загружаю…</div></div>
+  </div>
+
+  <!-- ================= ВОДИТЕЛИ ================= -->
+  <div class="section" id="sectionDrivers">
+
+    <div class="block-title">Добавить водителя</div>
+    <div class="card">
+      <label for="drvName">ФИО водителя</label>
+      <input type="text" id="drvName" placeholder="Например: Серик Болатович">
+
+      <label for="drvPhone">Телефон</label>
+      <input type="text" id="drvPhone" placeholder="Например: +7 701 987 65 43">
+
+      <button class="btn btn-add" onclick="addDriver()">➕ Добавить водителя</button>
+    </div>
+
+    <div class="block-title">Список водителей</div>
+    <div id="driversList"><div class="loading">Загружаю…</div></div>
+  </div>
+
+</div>
+
+<script>
+/* ============================================================
+   ПОДКЛЮЧЕНИЕ К БАЗЕ — уже настроено, ничего менять не нужно
+   ============================================================ */
+/* ===== REAL AUTH (Supabase) replaces the old PIN prompt ===== */
+var SUPABASE_URL = "https://ilfxyvsqintvjbifqxvr.supabase.co";
+
+function apiHeaders() {
+  var h = MN_AUTH.apiHeaders();
+  h["Prefer"] = "return=representation";
+  return h;
+}
+
+MN_AUTH.init(function(auth){
+  document.body.classList.add('mnauth-ready');
+});
+
+/* ---------- Проверка связи ---------- */
+fetch(SUPABASE_URL + "/rest/v1/rs_logistika_managers?select=id&limit=1", { headers: apiHeaders() })
+  .then(function (r) {
+    var el = document.getElementById("connStatus");
+    if (r.ok) { el.textContent = "✅ Связь с базой установлена"; el.className = "conn-status conn-ok"; }
+    else { el.textContent = "⚠️ Нет связи с базой"; el.className = "conn-status conn-error"; }
+  })
+  .catch(function () {
+    var el = document.getElementById("connStatus");
+    el.textContent = "⚠️ Нет связи с базой";
+    el.className = "conn-status conn-error";
+  });
+
+/* ---------- Сообщения пользователю ---------- */
+var msgTimer = null;
+function showMsg(text, isError) {
+  var box = document.getElementById("msgBox");
+  box.textContent = text;
+  box.className = "msg-inner " + (isError ? "msg-error" : "msg-ok");
+  box.style.display = "block";
+  if (msgTimer) clearTimeout(msgTimer);
+  msgTimer = setTimeout(function () { box.style.display = "none"; }, 5000);
+}
+
+function esc(v) {
+  if (v === null || v === undefined) return "";
+  return String(v).replace(/"/g, "&quot;");
+}
+
+/* ---------- Вкладки ---------- */
+function showTab(name) {
+  document.getElementById("tabManagers").classList.toggle("active", name === "managers");
+  document.getElementById("tabDrivers").classList.toggle("active", name === "drivers");
+  document.getElementById("sectionManagers").classList.toggle("active", name === "managers");
+  document.getElementById("sectionDrivers").classList.toggle("active", name === "drivers");
+}
+
+/* ============================================================
+   МЕНЕДЖЕРЫ
+   ============================================================ */
+var managersData = [];
+
+function loadManagers() {
+  fetch(SUPABASE_URL + "/rest/v1/rs_logistika_managers?select=*&order=id", { headers: apiHeaders() })
+    .then(function (r) {
+      if (!r.ok) throw new Error("HTTP " + r.status);
+      return r.json();
+    })
+    .then(function (data) {
+      managersData = data;
+      renderManagers();
+    })
+    .catch(function () {
+      document.getElementById("managersList").innerHTML =
+        '<div class="loading">Не удалось загрузить список.</div>';
+    });
+}
+
+function renderManagers() {
+  var html = "";
+  if (managersData.length === 0) {
+    html = '<div class="loading">Пока нет ни одного менеджера. Добавьте первого через форму выше.</div>';
+  }
+  for (var i = 0; i < managersData.length; i++) {
+    var m = managersData[i];
+    var active = m.is_active !== false;
+    html += '<div class="item' + (active ? "" : " inactive") + '" id="mgr-' + m.id + '">'
+      + '<div class="item-name">' + esc(m.full_name) + '</div>'
+      + '<div class="item-sub">' + (m.phone ? esc(m.phone) : "Телефон не указан") + '</div>'
+      + '<div class="item-badge ' + (active ? "badge-on" : "badge-off") + '">' + (active ? "Активен" : "Отключён") + '</div>'
+      + '<div class="item-actions">'
+      + '<button class="btn btn-edit" onclick="editManager(' + m.id + ')">✏️ Изменить</button>'
+      + '<button class="btn btn-toggle" onclick="toggleManager(' + m.id + ', ' + (active ? "false" : "true") + ')">'
+      + (active ? "Отключить" : "Включить") + '</button>'
+      + '</div></div>';
+  }
+  document.getElementById("managersList").innerHTML = html;
+}
+
+function addManager() {
+  var name = document.getElementById("mgrName").value.trim();
+  var phone = document.getElementById("mgrPhone").value.trim();
+  if (!name) { showMsg("Введите ФИО менеджера.", true); return; }
+
+  fetch(SUPABASE_URL + "/rest/v1/rs_logistika_managers", {
+    method: "POST",
+    headers: apiHeaders(),
+    body: JSON.stringify({ full_name: name, phone: phone || null, is_active: true, company_id: MN_AUTH.companyId })
+  })
+    .then(function (r) {
+      if (!r.ok) throw new Error("HTTP " + r.status);
+      return r.json();
+    })
+    .then(function () {
+      document.getElementById("mgrName").value = "";
+      document.getElementById("mgrPhone").value = "";
+      showMsg("Менеджер «" + name + "» добавлен.", false);
+      loadManagers();
+    })
+    .catch(function () { showMsg("Не удалось добавить. Проверьте связь и попробуйте ещё раз.", true); });
+}
+
+function editManager(id) {
+  var m = null;
+  for (var i = 0; i < managersData.length; i++) { if (managersData[i].id === id) m = managersData[i]; }
+  if (!m) return;
+
+  var el = document.getElementById("mgr-" + id);
+  el.innerHTML =
+      '<label>ФИО менеджера</label>'
+    + '<input type="text" id="editMgrName-' + id + '" value="' + esc(m.full_name) + '">'
+    + '<label>Телефон</label>'
+    + '<input type="text" id="editMgrPhone-' + id + '" value="' + esc(m.phone) + '">'
+    + '<div class="item-actions">'
+    + '<button class="btn btn-save" onclick="saveManager(' + id + ')">💾 Сохранить</button>'
+    + '<button class="btn btn-cancel" onclick="renderManagers()">Отмена</button>'
+    + '</div>';
+}
+
+function saveManager(id) {
+  var name = document.getElementById("editMgrName-" + id).value.trim();
+  var phone = document.getElementById("editMgrPhone-" + id).value.trim();
+  if (!name) { showMsg("ФИО не может быть пустым.", true); return; }
+
+  fetch(SUPABASE_URL + "/rest/v1/rs_logistika_managers?id=eq." + id, {
+    method: "PATCH",
+    headers: apiHeaders(),
+    body: JSON.stringify({ full_name: name, phone: phone || null })
+  })
+    .then(function (r) {
+      if (!r.ok) throw new Error("HTTP " + r.status);
+      showMsg("Изменения сохранены.", false);
+      loadManagers();
+    })
+    .catch(function () { showMsg("Не удалось сохранить. Попробуйте ещё раз.", true); });
+}
+
+function toggleManager(id, newState) {
+  fetch(SUPABASE_URL + "/rest/v1/rs_logistika_managers?id=eq." + id, {
+    method: "PATCH",
+    headers: apiHeaders(),
+    body: JSON.stringify({ is_active: newState })
+  })
+    .then(function (r) {
+      if (!r.ok) throw new Error("HTTP " + r.status);
+      showMsg(newState ? "Менеджер включён." : "Менеджер отключён (в списках больше не показывается).", false);
+      loadManagers();
+    })
+    .catch(function () { showMsg("Не удалось изменить статус. Попробуйте ещё раз.", true); });
+}
+
+/* ============================================================
+   ВОДИТЕЛИ
+   ============================================================ */
+var driversData = [];
+
+function loadDrivers() {
+  fetch(SUPABASE_URL + "/rest/v1/rs_logistika_drivers?select=*&order=id", { headers: apiHeaders() })
+    .then(function (r) {
+      if (!r.ok) throw new Error("HTTP " + r.status);
+      return r.json();
+    })
+    .then(function (data) {
+      driversData = data;
+      renderDrivers();
+    })
+    .catch(function () {
+      document.getElementById("driversList").innerHTML =
+        '<div class="loading">Не удалось загрузить список.</div>';
+    });
+}
+
+function renderDrivers() {
+  var html = "";
+  if (driversData.length === 0) {
+    html = '<div class="loading">Пока нет ни одного водителя. Добавьте первого через форму выше.</div>';
+  }
+  for (var i = 0; i < driversData.length; i++) {
+    var d = driversData[i];
+    var active = d.is_active !== false;
+    html += '<div class="item' + (active ? "" : " inactive") + '" id="drv-' + d.id + '">'
+      + '<div class="item-name">' + esc(d.full_name) + '</div>'
+      + '<div class="item-sub">' + (d.phone ? esc(d.phone) : "Телефон не указан") + '</div>'
+      + '<div class="item-badge ' + (active ? "badge-on" : "badge-off") + '">' + (active ? "Активен" : "Отключён") + '</div>'
+      + '<div class="item-actions">'
+      + '<button class="btn btn-edit" onclick="editDriver(' + d.id + ')">✏️ Изменить</button>'
+      + '<button class="btn btn-toggle" onclick="toggleDriver(' + d.id + ', ' + (active ? "false" : "true") + ')">'
+      + (active ? "Отключить" : "Включить") + '</button>'
+      + '</div></div>';
+  }
+  document.getElementById("driversList").innerHTML = html;
+}
+
+function addDriver() {
+  var name = document.getElementById("drvName").value.trim();
+  var phone = document.getElementById("drvPhone").value.trim();
+  if (!name) { showMsg("Введите ФИО водителя.", true); return; }
+
+  fetch(SUPABASE_URL + "/rest/v1/rs_logistika_drivers", {
+    method: "POST",
+    headers: apiHeaders(),
+    body: JSON.stringify({ full_name: name, phone: phone || null, is_active: true, company_id: MN_AUTH.companyId })
+  })
+    .then(function (r) {
+      if (!r.ok) throw new Error("HTTP " + r.status);
+      return r.json();
+    })
+    .then(function () {
+      document.getElementById("drvName").value = "";
+      document.getElementById("drvPhone").value = "";
+      showMsg("Водитель «" + name + "» добавлен.", false);
+      loadDrivers();
+    })
+    .catch(function () { showMsg("Не удалось добавить. Проверьте связь и попробуйте ещё раз.", true); });
+}
+
+function editDriver(id) {
+  var d = null;
+  for (var i = 0; i < driversData.length; i++) { if (driversData[i].id === id) d = driversData[i]; }
+  if (!d) return;
+
+  var el = document.getElementById("drv-" + id);
+  el.innerHTML =
+      '<label>ФИО водителя</label>'
+    + '<input type="text" id="editDrvName-' + id + '" value="' + esc(d.full_name) + '">'
+    + '<label>Телефон</label>'
+    + '<input type="text" id="editDrvPhone-' + id + '" value="' + esc(d.phone) + '">'
+    + '<div class="item-actions">'
+    + '<button class="btn btn-save" onclick="saveDriver(' + id + ')">💾 Сохранить</button>'
+    + '<button class="btn btn-cancel" onclick="renderDrivers()">Отмена</button>'
+    + '</div>';
+}
+
+function saveDriver(id) {
+  var name = document.getElementById("editDrvName-" + id).value.trim();
+  var phone = document.getElementById("editDrvPhone-" + id).value.trim();
+  if (!name) { showMsg("ФИО не может быть пустым.", true); return; }
+
+  fetch(SUPABASE_URL + "/rest/v1/rs_logistika_drivers?id=eq." + id, {
+    method: "PATCH",
+    headers: apiHeaders(),
+    body: JSON.stringify({ full_name: name, phone: phone || null })
+  })
+    .then(function (r) {
+      if (!r.ok) throw new Error("HTTP " + r.status);
+      showMsg("Изменения сохранены.", false);
+      loadDrivers();
+    })
+    .catch(function () { showMsg("Не удалось сохранить. Попробуйте ещё раз.", true); });
+}
+
+function toggleDriver(id, newState) {
+  fetch(SUPABASE_URL + "/rest/v1/rs_logistika_drivers?id=eq." + id, {
+    method: "PATCH",
+    headers: apiHeaders(),
+    body: JSON.stringify({ is_active: newState })
+  })
+    .then(function (r) {
+      if (!r.ok) throw new Error("HTTP " + r.status);
+      showMsg(newState ? "Водитель включён." : "Водитель отключён (в списках больше не показывается).", false);
+      loadDrivers();
+    })
+    .catch(function () { showMsg("Не удалось изменить статус. Попробуйте ещё раз.", true); });
+}
+
+/* ---------- Запуск ---------- */
+loadManagers();
+loadDrivers();
+</script>
+</body>
+</html>
