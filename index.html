@@ -805,7 +805,9 @@
     
     <div style="margin-top:20px;padding:16px;background:#f8fafb;border-radius:8px;border:1px solid #e2e8f0;">
       <div style="font-weight:bold;color:#1e3a5f;margin-bottom:12px;">📋 Все заявки</div>
+      <input type="text" id="leads-search" placeholder="🔍 Поиск по названию компании..." style="width:100%;box-sizing:border-box;padding:10px 12px;border:1px solid #ddd;border-radius:8px;margin-bottom:10px;font-size:14px;" oninput="onLeadsSearchInput()">
       <div id="leads-list" style="max-height:400px;overflow-y:auto;"></div>
+      <button id="leads-more-btn" onclick="loadMoreLeads()" style="display:none;width:100%;margin-top:10px;padding:10px;border:1px solid #ddd;border-radius:8px;background:#fff;font-weight:bold;cursor:pointer;">Показать ещё</button>
     </div>
   </div>
 </div>
@@ -1408,23 +1410,62 @@ async function fillSelect(selectId, table) {
 /* ============================================================
    СПИСОК ЗАЯВОК — загрузка и отображение из Supabase
    ============================================================ */
-async function loadLeads() {
-  const data = await sbFetch('rs_logistika_leads', '?select=*&order=created_at.desc');
-  renderLeads(Array.isArray(data) ? data : []);
+const LEADS_PAGE_SIZE = 20;
+let leadsOffset = 0;
+let leadsSearchTerm = '';
+let leadsSearchTimer = null;
+
+function onLeadsSearchInput() {
+  clearTimeout(leadsSearchTimer);
+  leadsSearchTimer = setTimeout(function () {
+    leadsSearchTerm = document.getElementById('leads-search').value.trim();
+    loadLeads(true);
+  }, 350);
 }
 
-function renderLeads(leads) {
+async function loadLeads(reset) {
+  if (reset !== false) { leadsOffset = 0; }
+  let params = `?select=*&order=created_at.desc&limit=${LEADS_PAGE_SIZE}&offset=${leadsOffset}`;
+  if (leadsSearchTerm) {
+    params += `&client_company=ilike.*${encodeURIComponent(leadsSearchTerm)}*`;
+  }
+  const data = await sbFetch('rs_logistika_leads', params);
+  const list = Array.isArray(data) ? data : [];
+  renderLeads(list, leadsOffset === 0);
+  const moreBtn = document.getElementById('leads-more-btn');
+  if (moreBtn) moreBtn.style.display = (list.length === LEADS_PAGE_SIZE) ? 'block' : 'none';
+}
+
+function loadMoreLeads() {
+  leadsOffset += LEADS_PAGE_SIZE;
+  loadLeads(false);
+}
+
+async function deleteLead(id) {
+  if (!confirm('Удалить эту заявку без возможности восстановления?')) return;
+  const r = await fetch(`${SUPABASE_URL}/rest/v1/rs_logistika_leads?id=eq.${id}`, {
+    method: 'DELETE',
+    headers: MN_AUTH.apiHeaders()
+  });
+  if (r.ok) { showToast('Заявка удалена'); loadLeads(true); loadDashboard(); }
+  else { showToast('❌ Не удалось удалить'); }
+}
+
+function renderLeads(leads, replace) {
   const container = document.getElementById('leads-list');
   if (!container) return;
-  
-  if (leads.length === 0) {
+
+  if (replace !== false) container.innerHTML = '';
+
+  if (leads.length === 0 && replace !== false) {
     container.innerHTML = '<div style="padding:16px;text-align:center;color:#999;">📭 Нет заявок</div>';
     return;
   }
-  
-  container.innerHTML = leads.map(lead => `
-    <div style="background:#fff;border:1px solid #ddd;border-radius:8px;padding:12px;margin-bottom:10px;">
-      <div style="font-weight:bold;color:#003d82;margin-bottom:8px;">
+
+  const html = leads.map(lead => `
+    <div style="background:#fff;border:1px solid #ddd;border-radius:8px;padding:12px;margin-bottom:10px;position:relative;">
+      <button onclick="deleteLead('${lead.id}')" title="Удалить" style="position:absolute;top:8px;right:8px;background:none;border:none;color:#c0392b;font-size:15px;cursor:pointer;">🗑️</button>
+      <div style="font-weight:bold;color:#003d82;margin-bottom:8px;padding-right:24px;">
         ${lead.client_company || 'Новая заявка'}
       </div>
       <div style="font-size:13px;color:#666;line-height:1.6;">
@@ -1436,6 +1477,8 @@ function renderLeads(leads) {
       </div>
     </div>
   `).join('');
+
+  container.insertAdjacentHTML('beforeend', html);
 }
 
 // Заявки, справочники и дашборд загружаются только после подтверждённого входа
