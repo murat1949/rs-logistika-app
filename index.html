@@ -1437,15 +1437,7 @@ function renderLeads(leads) {
   `).join('');
 }
 
-// Загружаем заявки при открытии вкладки
-Promise.all([
-  fillSelect('z-manager', 'rs_logistika_managers'),
-  fillSelect('p-manager', 'rs_logistika_managers'),
-  fillSelect('r-manager', 'rs_logistika_managers'),
-  fillSelect('r-driver', 'rs_logistika_drivers'),
-  loadLeads()
-]).catch(console.error);
-
+// Заявки, справочники и дашборд загружаются только после подтверждённого входа
 
 async function loadDropdowns() {
   await Promise.all([
@@ -1462,8 +1454,9 @@ MN_AUTH.init(function(auth){
   if (nameEl) nameEl.textContent = auth.companyName;
   applyRole();
   loadDashboard();
+  loadDropdowns();
+  loadLeads();
 });
-loadDropdowns();
 </script>
 </div>
 </body>
